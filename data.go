@@ -63,11 +63,12 @@ func radians(arg float64) float64{
 	return r
 }
 
-func initial(dt RData) RData{
-	for i:=0;i<len(dt.bparam);i++{
+func init_bdata(dt RData) BData{
+	var(
+		bd BData
+	)
 
-	}
-	return dt
+	return bd
 }
 
 func mangler(alphaNV float64) mang{
