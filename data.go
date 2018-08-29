@@ -69,6 +69,7 @@ func radians(arg float64) float64{
 	return r
 }
 
+<<<<<<< HEAD
 func init0(dt RData, psi float64) BData{
 	var (
 		ret BData
