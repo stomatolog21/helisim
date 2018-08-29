@@ -42,8 +42,10 @@ func main() {
 			fmt.Printf("%f\n",foil.Data[i].Cx[k])
 		}
 	}*/
-
-	output()
+	var ctrl control
+	ctrl.Fi7 = 8
+	run(0,0,0,0, ctrl)
+	//output()
 }
 
 func read_data(filename string) {
@@ -79,6 +81,7 @@ func read_data(filename string) {
 		r[i] = r[i-1] + (R-r0)/(float64(N)-1)
 		_r_[i] = r[i] / R
 	}
+	_r_[N-1] = 1
 	sheet = xlFile.Sheet["Twist"]
 	row = sheet.Rows
 	Xt := make([]float64, len(row))
