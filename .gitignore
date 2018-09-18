@@ -1,6 +1,12 @@
 *.exe
+
 .idea/*
+
 *.vscode
+
 *.frw
+
 *.bak
+
 *.tif
+
