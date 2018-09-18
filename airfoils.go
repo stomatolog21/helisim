@@ -183,21 +183,22 @@ func FindCy(Alpha, Mach float64, foil Foil) float64{
 
 func FindCx(Alpha, Mach float64, foil Foil) float64{
 	var(
-		i int
+		i, j int
 		x1, x2 float64
 		y1, y2 float64
 		y float64
 	)
-	i = 1
+	j = 0
 	for i=1;i<len(foil.Mach);i++{
+		j++
 		if Mach <= foil.Mach[i]{
 			break
 		}
 	}
-	x1 = foil.Mach[i-1]
-	x2 = foil.Mach[i]
-	y1 = aprox(Alpha, foil.Data[i-1].Alpha, foil.Data[i-1].Cx)
-	y2 = aprox(Alpha, foil.Data[i].Alpha, foil.Data[i].Cx)
+	x1 = foil.Mach[j-1]
+	x2 = foil.Mach[j]
+	y1 = aprox(Alpha, foil.Data[j-1].Alpha, foil.Data[j-1].Cx)
+	y2 = aprox(Alpha, foil.Data[j].Alpha, foil.Data[j].Cx)
 	y = (Mach - x1) * (y2 - y1) / (x2 - x1) + y1
 	return y
 }

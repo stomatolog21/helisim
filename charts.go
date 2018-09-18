@@ -2,21 +2,24 @@ package main
 
 import (
 	"bytes"
-	"fmt"
+	"io/ioutil"
+	"log"
+
 	"github.com/wcharczuk/go-chart"
 	"github.com/wcharczuk/go-chart/drawing"
-	"io/ioutil"
 )
 
-func plot(X, Y []float64, filename string){
+func plot(X, Y []float64, filename, xaxis, yaxis string) {
+	filename = ".\\pic\\" + filename
 	graph := chart.Chart{
 		XAxis: chart.XAxis{
-			Name:      "Радиус, м",
+			Name:      xaxis,
 			NameStyle: chart.StyleShow(),
 			Style:     chart.StyleShow(),
 		},
 		YAxis: chart.YAxis{
-			Name:      "Индуктивная скорость, м/с",
+			Name:      yaxis,
+			AxisType:  1,
 			NameStyle: chart.StyleShow(),
 			Style:     chart.StyleShow(),
 		},
@@ -36,9 +39,13 @@ func plot(X, Y []float64, filename string){
 	buffer := bytes.NewBuffer([]byte{})
 
 	err := graph.Render(chart.PNG, buffer)
+	if err != nil {
+		log.Println(err)
+	}
 	readbuf, err1 := ioutil.ReadAll(buffer)
+	if err1 != nil {
+		log.Println(err1)
+	}
 	err = ioutil.WriteFile(filename, readbuf, 0644)
-	fmt.Println(err)
-	fmt.Println(err1)
-	fmt.Println(buffer)
+
 }
