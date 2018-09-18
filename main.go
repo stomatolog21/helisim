@@ -9,41 +9,56 @@ import (
 	"github.com/tealeg/xlsx"
 )
 
-const g  = 9.81
+const g = 9.81
 
 var (
-	m0       float64
-	R        float64
-	r0       float64
-	b        float64
-	RPM      float64
-	z        int
-	k        float64
-	dPsi     float64
-	Lhh      float64
-	wR       float64
-	N        = 100
-	Nps 	=	 1.0
+	m0 float64
+	//R is a main rotor radius
+	R  float64
+	r0 float64
+	b  float64
+	//RPM is a main rotor rotation speed
+	RPM  float64
+	z    int
+	k    float64
+	dPsi float64
+	//Lhh is a main rotor horisontal hinge position
+	Lhh float64
+	wR  float64
+	//N is a number of blade elements
+	N = 100
+	//Nps is a main rotor azimuth step
+	Nps   = 1.0
 	dTime float64
+	//Omega is an angular speed
 	Omega float64
-	r        []float64
-	_r_      []float64
-	dr []float64
-	dFi      []float64
-	AirTwist []air_twist
-	EIx, EIy []float64
+	r     []float64
+	//_r is a relative blade radius
+	_r  []float64
+	dr  []float64
+	dFi []float64
+	//AirTwist is a container of airfoils
+	AirTwist []airtwist
+	//EIx is a blade stiffness
+	EIx []float64
+	//EIy is a blade stiffness
+	EIy  []float64
 	mass []float64
-	rm []float64
-	Shh, Ihh float64
+	rm   []float64
+	//Shh is static moment of main rotor blade
+	Shh float64
+	//Ihh is moment of inertia of main rotor blade
+	Ihh float64
 )
 
-type air_twist struct {
+//air_twist is a struct, containes foil
+type airtwist struct {
 	r    float64
 	foil Foil
 }
 
 func main() {
-	read_data("test.xlsx")
+	readdata("test.xlsx")
 	//foil := Read_foil("NACA 63012")
 	/*	for i := 0; i <len(foil.Mach);i++ {
 		fmt.Println(foil.Mach[i])
@@ -55,11 +70,11 @@ func main() {
 	}*/
 	var ctrl control
 	ctrl.Fi7 = 8
-	run(0,0,0,0, ctrl)
+	run(0, 0, 0, 0, ctrl)
 	//output()
 }
 
-func read_data(filename string) {
+func readdata(filename string) {
 	var (
 		i int
 	)
@@ -70,7 +85,7 @@ func read_data(filename string) {
 	sheet := xlFile.Sheet["HeliData"]
 	row := sheet.Rows
 	mp := make(map[string]float64)
-	for i := 0; i < len(row); i += 1 {
+	for i := 0; i < len(row); i++ {
 		mp[row[i].Cells[0].Value], err = strconv.ParseFloat(row[i].Cells[1].Value, 64)
 	}
 	m0 = mp["m0"]
@@ -83,23 +98,23 @@ func read_data(filename string) {
 	dPsi = mp["dPsi"]
 	Lhh = mp["Lhh"]
 	wR = math.Pi * RPM * R / 30
-	Omega = wR/R
-	dTime = 1/(Omega/(2*math.Pi)*(360/Nps))
+	Omega = wR / R
+	dTime = 1 / (Omega / (2 * math.Pi) * (360 / Nps))
 	//fmt.Printf("%f\n", dTime)
 	dr = make([]float64, N)
 	r = make([]float64, N)
-	_r_ = make([]float64, N)
+	_r = make([]float64, N)
 	dFi = make([]float64, N)
 	mass = make([]float64, N)
 	EIx = make([]float64, N)
 	r[0] = r0
-	_r_[0] = r[0] / R
+	_r[0] = r[0] / R
 	for i = 1; i < N; i++ {
 		r[i] = r[i-1] + (R-r0)/(float64(N)-1)
-		_r_[i] = r[i] / R
-		dr[i-1] = r[i]-r[i-1]
+		_r[i] = r[i] / R
+		dr[i-1] = r[i] - r[i-1]
 	}
-	_r_[N-1] = 1
+	_r[N-1] = 1
 	sheet = xlFile.Sheet["Twist"]
 	row = sheet.Rows
 	Xt := make([]float64, len(row))
@@ -114,25 +129,25 @@ func read_data(filename string) {
 	sheet = xlFile.Sheet["Foils"]
 	row = sheet.Rows
 	fls := make(map[float64]string)
-	for i := 1; i < len(row); i += 1 {
+	for i := 1; i < len(row); i++ {
 		arg, err1 := strconv.ParseFloat(row[i].Cells[0].Value, 64)
 		if err1 != nil {
 			fmt.Printf(err1.Error())
 		}
 		fls[arg] = row[i].Cells[1].Value
-		}
-	AirTwist = make([]air_twist, len(fls))
+	}
+	AirTwist = make([]airtwist, len(fls))
 	i = 0
 	var keys []float64
-	for k:=range fls{
-		keys = append(keys,k)
+	for k := range fls {
+		keys = append(keys, k)
 	}
 
-		sort.Float64s(keys)
+	sort.Float64s(keys)
 	//fmt.Printf("%v\n", keys)
 	for _, k := range keys {
 		AirTwist[i].r = k
-		AirTwist[i].foil = Read_foil(fls[k])
+		AirTwist[i].foil = Readfoil(fls[k])
 		AirTwist[i].foil.name = fls[k]
 		//fmt.Printf("%f\t", k)
 		//fmt.Println(fls[k])
@@ -151,11 +166,11 @@ func read_data(filename string) {
 
 	Shh = 0
 	Ihh = 0
-	for i:=0; i<len(rm)-1;i++{
+	for i := 0; i < len(rm)-1; i++ {
 		Shh = Shh + ((mass[i]*rm[i])+(mass[i+1]*rm[i+1]))/2*(rm[i+1]-rm[i])
 		Ihh = Ihh + ((mass[i]*rm[i]*rm[i])+(mass[i+1]*rm[i+1]*rm[i+1]))/2*(rm[i+1]-rm[i])
 	}
-	 //fmt.Printf("%f\t%f\n", Shh, Ihh)
+	//fmt.Printf("%f\t%f\n", Shh, Ihh)
 	//plot(rm, EIx, "EIx.png","Радиус, м", "Погонная жесткость, Нм")
 	//plot(rm, mass, "mass.png","Радиус, м", "Погонная масса, кг/м")
 
@@ -178,13 +193,14 @@ func aprox(arg float64, X []float64, Y []float64) float64 {
 		}
 	}
 	x = arg
-	if arg>X[0]{
+	if arg > X[0] {
 		x1 = X[j-1]
 		y1 = Y[j-1]
-		}
-	if arg<=X[0]{
+	}
+	if arg <= X[0] {
 		x1 = X[0]
-		y1 = Y[0]}
+		y1 = Y[0]
+	}
 	x2 = X[j]
 
 	y2 = Y[j]
@@ -196,7 +212,7 @@ func output() {
 	for i := 0; i < N; i++ {
 		fmt.Printf("%d\t", i)
 		fmt.Printf("%f\t", r[i])
-		fmt.Printf("%f\t", _r_[i])
+		fmt.Printf("%f\t", _r[i])
 		fmt.Printf("%f\n", dFi[i])
 	}
 }

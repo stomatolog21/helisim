@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+//RData is a rotor data struct
 type RData struct {
 	Vx, Vy, V    float64
 	ctrl         control
@@ -17,39 +18,41 @@ type RData struct {
 	dtheta       float64
 	bparam       []BData
 	alphaNV      float64
-	c_mang       mang
+	cMang        mang
 	vcr          float64
-	D1 float64
-	t1, t2 float64
-
+	D1           float64
+	t1, t2       float64
 }
+
+//Forces is a main rotor forces struct
 type Forces struct {
-	T,H,S float64
+	T, H, S    float64
 	Mx, My, Mz float64
 }
-type BData struct {
-	psi, dpsi  float64
-	vind []float64
-	fi   []float64
-	Vind float64
-	_u1_ []float64
-	_v1_ []float64
-	beta, beta1, beta2 float64
-	mu float64
-	_vbeta_ []float64
-	F []float64
-	_w1_ []float64
-	W1 []float64
-	al []float64
-	mach []float64
-	Cy, Cx []float64
-	dy, dx []float64
-	dt, dq, dqp,dqi []float64
-	dmx, dmy, dmz []float64
-	dh, ds []float64
-	dfr []float64
-	T, H, S, Mx, My, Mz float64
 
+//BData is a blade data struct
+type BData struct {
+	psi, dpsi           float64
+	vind                []float64
+	fi                  []float64
+	Vind                float64
+	_u1                 []float64
+	_v1                 []float64
+	beta, beta1, beta2  float64
+	mu                  float64
+	_vbeta              []float64
+	F                   []float64
+	_w1                 []float64
+	W1                  []float64
+	al                  []float64
+	mach                []float64
+	Cy, Cx              []float64
+	dy, dx              []float64
+	dt, dq, dqp, dqi    []float64
+	dmx, dmy, dmz       []float64
+	dh, ds              []float64
+	dfr                 []float64
+	T, H, S, Mx, My, Mz float64
 }
 type control struct {
 	Fi7    float64
@@ -66,7 +69,7 @@ type mang struct {
 
 func run(H0, V0, Vy0, theta0 float64, ctrl control) {
 	var (
-		rd RData
+		rd  RData
 		his []BData
 	)
 	rd.Hrho = H0
@@ -81,18 +84,18 @@ func run(H0, V0, Vy0, theta0 float64, ctrl control) {
 	rd.Vx = rd.V * math.Cos(rd.Theta)
 	rd.theta = radians(theta0)
 	rd.alphaNV = rd.Theta - rd.theta
-	rd.c_mang = mangler(rd.alphaNV)
+	rd.cMang = mangler(rd.alphaNV)
 	rd.bparam = make([]BData, z)
 	his = make([]BData, z)
-	rd.t1 = radians(rd.D1*(rd.ctrl.DeltaK+k*rd.ctrl.DeltaV))
-	rd.t2 = radians(rd.D1*(-rd.ctrl.DeltaV+k*rd.ctrl.DeltaK))
-	T:=m0*g
-	T1:=0.0
+	rd.t1 = radians(rd.D1 * (rd.ctrl.DeltaK + k*rd.ctrl.DeltaV))
+	rd.t2 = radians(rd.D1 * (-rd.ctrl.DeltaV + k*rd.ctrl.DeltaK))
+	T := m0 * g
+	T1 := 0.0
 	start := time.Now()
 	vh := math.Pow((T / (2 * rd.rho * math.Pi * math.Pow(R, 2))), 0.5)
 	Vind := v0(T, rd.V, rd.rho, rd.alphaNV, vh/wR)
-	for k:=0;k<z;k++{
-		ps := float64(k*360/z)
+	for k := 0; k < z; k++ {
+		ps := float64(k * 360 / z)
 		rd.bparam[k] = init0(rd, ps, Vind)
 		T1 = T1 + rd.bparam[k].T
 		his[k] = rd.bparam[k]
@@ -101,14 +104,14 @@ func run(H0, V0, Vy0, theta0 float64, ctrl control) {
 	//fmt.Println("")
 	elapsed := time.Since(start)
 	fmt.Printf("Init time %s\n", elapsed)
-	
-//fmt.Printf("%f\n", T1)
-	for j:=1;j<360;j++{
-		T = (T+T1)/2
+
+	//fmt.Printf("%f\n", T1)
+	for j := 1; j < 360; j++ {
+		T = (T + T1) / 2
 		T1 = 0
 		vh = math.Pow((T / (2 * rd.rho * math.Pi * math.Pow(R, 2))), 0.5)
 		Vind = v0(T, rd.V, rd.rho, rd.alphaNV, vh/wR)
-		for k:=0;k<z;k++{
+		for k := 0; k < z; k++ {
 			rd.bparam[k] = calc(rd.bparam[k], his[k], rd, Vind, Nps*float64(j)+(360/float64(z))*float64(k))
 			T1 = T1 + rd.bparam[k].T
 			his[k] = rd.bparam[k]
@@ -134,7 +137,7 @@ func radians(arg float64) float64 {
 func init0(dt RData, psi, Vind float64) BData {
 	var (
 		ret BData
-				i int
+		i   int
 	)
 
 	ret.psi = radians(psi)
@@ -142,14 +145,14 @@ func init0(dt RData, psi, Vind float64) BData {
 	//fmt.Printf("vh = %f\n",vh)
 	ret.Vind = Vind
 	//fmt.Printf("%f\n", ret.Vind)
-	ret.mu = dt.V*math.Cos(dt.alphaNV)/wR
+	ret.mu = dt.V * math.Cos(dt.alphaNV) / wR
 	ret.vind = make([]float64, N)
 	ret.fi = make([]float64, N)
-	ret._u1_ = make([]float64, N)
-	ret._vbeta_ = make([]float64, N)
-	ret._v1_ = make([]float64, N)
+	ret._u1 = make([]float64, N)
+	ret._vbeta = make([]float64, N)
+	ret._v1 = make([]float64, N)
 	ret.F = make([]float64, N)
-	ret._w1_ = make([]float64, N)
+	ret._w1 = make([]float64, N)
 	ret.al = make([]float64, N)
 	ret.mach = make([]float64, N)
 	ret.Cy = make([]float64, N)
@@ -168,30 +171,30 @@ func init0(dt RData, psi, Vind float64) BData {
 	ret.dh = make([]float64, N)
 	ret.ds = make([]float64, N)
 	for i = 0; i < N; i++ {
-		ret.vind[i] = -4 * ret.Vind * (0.5*dt.c_mang.c0[i] - dt.c_mang.c1[i]*math.Cos(ret.psi) - dt.c_mang.c2[i]*math.Cos(2*ret.psi) - dt.c_mang.c3[i]*math.Cos(3*ret.psi) - dt.c_mang.c4[i]*math.Cos(4*ret.psi))
-		ret.fi[i] = radians(dt.ctrl.Fi7)+radians(dFi[i])-k*ret.beta+dt.t1*math.Cos(ret.psi)+dt.t2*math.Sin(ret.psi)
-		ret._u1_[i] = _r_[i]+ret.mu*math.Sin(ret.psi)
-		ret._vbeta_[i] = -_r_[i]*ret.beta1-ret.mu*math.Cos(dt.alphaNV)*math.Sin(ret.beta)*math.Cos(ret.psi)
-		ret._v1_[i] = dt.V*math.Sin(dt.alphaNV)/wR+ret.vind[i]+ret._vbeta_[i]
-		ret._w1_[i] = math.Sqrt(ret._u1_[i]*ret._u1_[i]+ret._v1_[i]*ret._v1_[i])
-		ret.W1[i] = ret._w1_[i]*wR
-		ret.F[i] = -math.Atan2(ret._v1_[i], ret._u1_[i])
+		ret.vind[i] = -4 * ret.Vind * (0.5*dt.cMang.c0[i] - dt.cMang.c1[i]*math.Cos(ret.psi) - dt.cMang.c2[i]*math.Cos(2*ret.psi) - dt.cMang.c3[i]*math.Cos(3*ret.psi) - dt.cMang.c4[i]*math.Cos(4*ret.psi))
+		ret.fi[i] = radians(dt.ctrl.Fi7) + radians(dFi[i]) - k*ret.beta + dt.t1*math.Cos(ret.psi) + dt.t2*math.Sin(ret.psi)
+		ret._u1[i] = _r[i] + ret.mu*math.Sin(ret.psi)
+		ret._vbeta[i] = -_r[i]*ret.beta1 - ret.mu*math.Cos(dt.alphaNV)*math.Sin(ret.beta)*math.Cos(ret.psi)
+		ret._v1[i] = dt.V*math.Sin(dt.alphaNV)/wR + ret.vind[i] + ret._vbeta[i]
+		ret._w1[i] = math.Sqrt(ret._u1[i]*ret._u1[i] + ret._v1[i]*ret._v1[i])
+		ret.W1[i] = ret._w1[i] * wR
+		ret.F[i] = -math.Atan2(ret._v1[i], ret._u1[i])
 		ret.al[i] = degrees(ret.fi[i] - ret.F[i])
-		ret.mach[i] = ret.W1[i]/340
+		ret.mach[i] = ret.W1[i] / 340
 		ret.Cy[i] = tCy(r[i], ret.al[i], ret.mach[i])
 		ret.Cx[i] = tCx(r[i], ret.al[i], ret.mach[i])
-		ret.dy[i] = ret.Cy[i]*dt.rho*ret.W1[i]*ret.W1[i]*b/2
-		ret.dx[i] = ret.Cx[i]*dt.rho*ret.W1[i]*ret.W1[i]*b/2
-		ret.dt[i] = (ret.dy[i]*math.Cos(ret.F[i])-ret.dx[i]*math.Sin(ret.F[i]))*math.Cos(ret.beta)
-		ret.dqp[i] = ret.dx[i]*math.Cos(ret.F[i])
-		ret.dqi[i] = ret.dy[i]*math.Sin(ret.F[i])
-		ret.dq[i] = ret.dqp[i]+ret.dqi[i]
-		ret.dmx[i] = r[i]*ret.dt[i]*math.Sin(ret.psi)
-		ret.dmy[i] = ret.dq[i]*r[i]
-		ret.dmz[i] = -ret.dt[i]*r[i]*math.Cos(ret.psi)
-		ret.dfr[i] = ret.dt[i]*math.Tan(ret.beta)
-		ret.dh[i] = ret.dq[i]*math.Sin(ret.psi)+ret.dfr[i]*math.Cos(ret.psi)
-		ret.ds[i] = -ret.dq[i]*math.Cos(ret.psi)+ret.dfr[i]*math.Sin(ret.psi)
+		ret.dy[i] = ret.Cy[i] * dt.rho * ret.W1[i] * ret.W1[i] * b / 2
+		ret.dx[i] = ret.Cx[i] * dt.rho * ret.W1[i] * ret.W1[i] * b / 2
+		ret.dt[i] = (ret.dy[i]*math.Cos(ret.F[i]) - ret.dx[i]*math.Sin(ret.F[i])) * math.Cos(ret.beta)
+		ret.dqp[i] = ret.dx[i] * math.Cos(ret.F[i])
+		ret.dqi[i] = ret.dy[i] * math.Sin(ret.F[i])
+		ret.dq[i] = ret.dqp[i] + ret.dqi[i]
+		ret.dmx[i] = r[i] * ret.dt[i] * math.Sin(ret.psi)
+		ret.dmy[i] = ret.dq[i] * r[i]
+		ret.dmz[i] = -ret.dt[i] * r[i] * math.Cos(ret.psi)
+		ret.dfr[i] = ret.dt[i] * math.Tan(ret.beta)
+		ret.dh[i] = ret.dq[i]*math.Sin(ret.psi) + ret.dfr[i]*math.Cos(ret.psi)
+		ret.ds[i] = -ret.dq[i]*math.Cos(ret.psi) + ret.dfr[i]*math.Sin(ret.psi)
 	}
 	/*str := strconv.Itoa(int(psi))+" "
 	plot(r, ret.vind, str+"1.png","Радиус, м", "Индуктивная скорость, м/с")
@@ -216,7 +219,7 @@ func init0(dt RData, psi, Vind float64) BData {
 	ret.Mx = 0
 	ret.My = 0
 	ret.Mz = 0
-	for i=0;i<N-1;i++{
+	for i = 0; i < N-1; i++ {
 		ret.T = ret.T + (ret.dt[i]+ret.dt[i+1])*dr[i]/2
 		ret.H = ret.H + (ret.dh[i]+ret.dh[i+1])*dr[i]/2
 		ret.S = ret.S + (ret.ds[i]+ret.ds[i+1])*dr[i]/2
@@ -224,16 +227,16 @@ func init0(dt RData, psi, Vind float64) BData {
 		ret.My = ret.My + (ret.dmy[i]+ret.dmy[i+1])*dr[i]/2
 		ret.Mz = ret.Mz + (ret.dmz[i]+ret.dmz[i+1])*dr[i]/2
 	}
-/*	fmt.Printf("T=%f\n", ret.T)
-	fmt.Printf("H=%f\n", ret.H)
-	fmt.Printf("S=%f\n", ret.S)
-	fmt.Printf("Mx=%f\n", ret.Mx)
-	fmt.Printf("My=%f\n", ret.My)
-	fmt.Printf("Mz=%f\n", ret.Mz)*/
-	ST:=stat_mom(r,ret.dt)
+	/*	fmt.Printf("T=%f\n", ret.T)
+		fmt.Printf("H=%f\n", ret.H)
+		fmt.Printf("S=%f\n", ret.S)
+		fmt.Printf("Mx=%f\n", ret.Mx)
+		fmt.Printf("My=%f\n", ret.My)
+		fmt.Printf("Mz=%f\n", ret.Mz)*/
+	ST := statmom(r, ret.dt)
 	//fmt.Printf("%f\n", ST)
-	A1:=(Ihh*math.Cos(ret.beta)-Lhh*Shh)*math.Pow(Omega,2)*math.Sin(ret.beta)
-	ret.beta2 = (ST-A1-g*Shh)/(Ihh*math.Pow(Omega,2))
+	A1 := (Ihh*math.Cos(ret.beta) - Lhh*Shh) * math.Pow(Omega, 2) * math.Sin(ret.beta)
+	ret.beta2 = (ST - A1 - g*Shh) / (Ihh * math.Pow(Omega, 2))
 	//fmt.Printf("d2beta=%f\n", ret.beta2)
 	ret.beta1 = ret.beta1 + ret.beta2
 	//fmt.Printf("dbeta=%f\n", ret.beta1)
@@ -254,7 +257,7 @@ func mangler(alphaNV float64) mang {
 	m.c4 = make([]float64, N)
 	mu = make([]float64, N)
 	for i := 0; i < N; i++ {
-		mu[i] = math.Sqrt(1 - math.Pow(_r_[i], 2))
+		mu[i] = math.Sqrt(1 - math.Pow(_r[i], 2))
 		//fmt.Printf("%f\t", _r_[i])
 		//fmt.Printf("%f\n", mu[i])
 		m.c0[i] = 15 * mu[i] * (1 - math.Pow(mu[i], 2)) / 8
@@ -281,15 +284,15 @@ func v0(T, V, Rho, AlphaNV float64, vcr float64) float64 {
 	return vcr1
 }
 
-func stat_mom(r1 []float64, m1 []float64) float64{
-	ST:= 0.0
-	for i:=0; i<len(r1)-1;i++{
+func statmom(r1 []float64, m1 []float64) float64 {
+	ST := 0.0
+	for i := 0; i < len(r1)-1; i++ {
 		ST = ST + ((m1[i]*(r1[i]-Lhh))+(m1[i+1]*(r1[i+1]-Lhh)))/2*(r1[i+1]-r1[i])
-		}
+	}
 	return ST
 }
 
-func calc(ret, old BData, dt RData, Vind, psi float64) BData{
+func calc(ret, old BData, dt RData, Vind, psi float64) BData {
 	var (
 		i int
 	)
@@ -304,36 +307,36 @@ func calc(ret, old BData, dt RData, Vind, psi float64) BData{
 	//fmt.Printf("vh = %f\n",vh)
 	ret.Vind = Vind
 	//fmt.Printf("%f\n", ret.Vind)
-	ret.mu = dt.V*math.Cos(dt.alphaNV)/wR
+	ret.mu = dt.V * math.Cos(dt.alphaNV) / wR
 	//fmt.Printf("Vind=%f\n", ret.Vind)
 	for i = 0; i < N; i++ {
-		ret.vind[i] = -4 * ret.Vind * (0.5*dt.c_mang.c0[i] - dt.c_mang.c1[i]*math.Cos(ret.psi) - dt.c_mang.c2[i]*math.Cos(2*ret.psi) - dt.c_mang.c3[i]*math.Cos(3*ret.psi) - dt.c_mang.c4[i]*math.Cos(4*ret.psi))
-		ret.fi[i] = radians(dt.ctrl.Fi7)+radians(dFi[i])-k*ret.beta+dt.t1*math.Cos(ret.psi)+dt.t2*math.Sin(ret.psi)
-		ret._u1_[i] = _r_[i]+ret.mu*math.Sin(ret.psi)
-		ret._vbeta_[i] = -_r_[i]*ret.beta1-ret.mu*math.Cos(dt.alphaNV)*math.Sin(ret.beta)*math.Cos(ret.psi)
-		ret._v1_[i] = dt.V*math.Sin(dt.alphaNV)/wR+ret.vind[i]+ret._vbeta_[i]
-		ret._w1_[i] = math.Sqrt(ret._u1_[i]*ret._u1_[i]+ret._v1_[i]*ret._v1_[i])
-		ret.W1[i] = ret._w1_[i]*wR
-		ret.F[i] = -math.Atan2(ret._v1_[i], ret._u1_[i])
+		ret.vind[i] = -4 * ret.Vind * (0.5*dt.cMang.c0[i] - dt.cMang.c1[i]*math.Cos(ret.psi) - dt.cMang.c2[i]*math.Cos(2*ret.psi) - dt.cMang.c3[i]*math.Cos(3*ret.psi) - dt.cMang.c4[i]*math.Cos(4*ret.psi))
+		ret.fi[i] = radians(dt.ctrl.Fi7) + radians(dFi[i]) - k*ret.beta + dt.t1*math.Cos(ret.psi) + dt.t2*math.Sin(ret.psi)
+		ret._u1[i] = _r[i] + ret.mu*math.Sin(ret.psi)
+		ret._vbeta[i] = -_r[i]*ret.beta1 - ret.mu*math.Cos(dt.alphaNV)*math.Sin(ret.beta)*math.Cos(ret.psi)
+		ret._v1[i] = dt.V*math.Sin(dt.alphaNV)/wR + ret.vind[i] + ret._vbeta[i]
+		ret._w1[i] = math.Sqrt(ret._u1[i]*ret._u1[i] + ret._v1[i]*ret._v1[i])
+		ret.W1[i] = ret._w1[i] * wR
+		ret.F[i] = -math.Atan2(ret._v1[i], ret._u1[i])
 		ret.al[i] = degrees(ret.fi[i] - ret.F[i])
-		ret.mach[i] = ret.W1[i]/340
+		ret.mach[i] = ret.W1[i] / 340
 		//fmt.Printf("%f\t%f\t%f\n", r[i], ret.al[i], ret.mach[i])
 		ret.Cy[i] = tCy(r[i], ret.al[i], ret.mach[i])
 
 		ret.Cx[i] = tCx(r[i], ret.al[i], ret.mach[i])
 
-		ret.dy[i] = ret.Cy[i]*dt.rho*ret.W1[i]*ret.W1[i]*b/2
-		ret.dx[i] = ret.Cx[i]*dt.rho*ret.W1[i]*ret.W1[i]*b/2
-		ret.dt[i] = (ret.dy[i]*math.Cos(ret.F[i])-ret.dx[i]*math.Sin(ret.F[i]))*math.Cos(ret.beta)
-		ret.dqp[i] = ret.dx[i]*math.Cos(ret.F[i])
-		ret.dqi[i] = ret.dy[i]*math.Sin(ret.F[i])
-		ret.dq[i] = ret.dqp[i]+ret.dqi[i]
-		ret.dmx[i] = r[i]*ret.dt[i]*math.Sin(ret.psi)
-		ret.dmy[i] = ret.dq[i]*r[i]
-		ret.dmz[i] = -ret.dt[i]*r[i]*math.Cos(ret.psi)
-		ret.dfr[i] = ret.dt[i]*math.Tan(ret.beta)
-		ret.dh[i] = ret.dq[i]*math.Sin(ret.psi)+ret.dfr[i]*math.Cos(ret.psi)
-		ret.ds[i] = -ret.dq[i]*math.Cos(ret.psi)+ret.dfr[i]*math.Sin(ret.psi)
+		ret.dy[i] = ret.Cy[i] * dt.rho * ret.W1[i] * ret.W1[i] * b / 2
+		ret.dx[i] = ret.Cx[i] * dt.rho * ret.W1[i] * ret.W1[i] * b / 2
+		ret.dt[i] = (ret.dy[i]*math.Cos(ret.F[i]) - ret.dx[i]*math.Sin(ret.F[i])) * math.Cos(ret.beta)
+		ret.dqp[i] = ret.dx[i] * math.Cos(ret.F[i])
+		ret.dqi[i] = ret.dy[i] * math.Sin(ret.F[i])
+		ret.dq[i] = ret.dqp[i] + ret.dqi[i]
+		ret.dmx[i] = r[i] * ret.dt[i] * math.Sin(ret.psi)
+		ret.dmy[i] = ret.dq[i] * r[i]
+		ret.dmz[i] = -ret.dt[i] * r[i] * math.Cos(ret.psi)
+		ret.dfr[i] = ret.dt[i] * math.Tan(ret.beta)
+		ret.dh[i] = ret.dq[i]*math.Sin(ret.psi) + ret.dfr[i]*math.Cos(ret.psi)
+		ret.ds[i] = -ret.dq[i]*math.Cos(ret.psi) + ret.dfr[i]*math.Sin(ret.psi)
 	}
 	/*str := strconv.Itoa(int(psi))+" "
 	plot(r, ret.vind, str+"1.png","Радиус, м", "Индуктивная скорость, м/с")
@@ -358,7 +361,7 @@ func calc(ret, old BData, dt RData, Vind, psi float64) BData{
 	ret.Mx = 0
 	ret.My = 0
 	ret.Mz = 0
-	for i=0;i<N-1;i++{
+	for i = 0; i < N-1; i++ {
 		ret.T = ret.T + (ret.dt[i]+ret.dt[i+1])*dr[i]/2
 		ret.H = ret.H + (ret.dh[i]+ret.dh[i+1])*dr[i]/2
 		ret.S = ret.S + (ret.ds[i]+ret.ds[i+1])*dr[i]/2
@@ -367,17 +370,17 @@ func calc(ret, old BData, dt RData, Vind, psi float64) BData{
 		ret.Mz = ret.Mz + (ret.dmz[i]+ret.dmz[i+1])*dr[i]/2
 	}
 	/*
-	fmt.Printf("psi=%f\t", degrees(ret.psi))
-	fmt.Printf("T=%f\t", ret.T)
-	fmt.Printf("H=%f\t", ret.H)
-	fmt.Printf("S=%f\t", ret.S)
-	fmt.Printf("Mx=%f\t", ret.Mx)
-	fmt.Printf("My=%f\t", ret.My)
-	fmt.Printf("Mz=%f\n", ret.Mz)
-*/
-	ST:=stat_mom(r,ret.dt)
+		fmt.Printf("psi=%f\t", degrees(ret.psi))
+		fmt.Printf("T=%f\t", ret.T)
+		fmt.Printf("H=%f\t", ret.H)
+		fmt.Printf("S=%f\t", ret.S)
+		fmt.Printf("Mx=%f\t", ret.Mx)
+		fmt.Printf("My=%f\t", ret.My)
+		fmt.Printf("Mz=%f\n", ret.Mz)
+	*/
+	ST := statmom(r, ret.dt)
 	//fmt.Printf("%f\n", ST)
-	A1:=(Ihh*math.Cos(ret.beta)-Lhh*Shh)*math.Pow(Omega,2)*math.Sin(ret.beta)
-	ret.beta2 = (ST-A1-g*Shh)/(Ihh*math.Pow(Omega,2))
+	A1 := (Ihh*math.Cos(ret.beta) - Lhh*Shh) * math.Pow(Omega, 2) * math.Sin(ret.beta)
+	ret.beta2 = (ST - A1 - g*Shh) / (Ihh * math.Pow(Omega, 2))
 	return ret
 }
