@@ -28,7 +28,7 @@ var (
 	//N is a number of blade elements
 	N = 100
 	//Nps is a main rotor azimuth step
-	Nps   = 1.0
+	Nps   = 2.0
 	dTime float64
 	//Omega is an angular speed
 	Omega float64
@@ -70,7 +70,7 @@ func main() {
 	}*/
 	var ctrl control
 	ctrl.Fi7 = 8
-	run(0, 0, 0, 0, ctrl)
+	run(0, 1, 0, 0, ctrl)
 	//output()
 }
 
@@ -195,15 +195,17 @@ func aprox(arg float64, X []float64, Y []float64) float64 {
 	x = arg
 	if arg > X[0] {
 		x1 = X[j-1]
+		x2 = X[j]
 		y1 = Y[j-1]
+		y2 = Y[j]
 	}
 	if arg <= X[0] {
 		x1 = X[0]
+		x2 = X[1]
 		y1 = Y[0]
+		y2 = Y[1]
 	}
-	x2 = X[j]
 
-	y2 = Y[j]
 	y = (x-x1)*(y2-y1)/(x2-x1) + y1
 	return y
 }

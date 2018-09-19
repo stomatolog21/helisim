@@ -169,6 +169,9 @@ func FindCy(Alpha, Mach float64, foil Foil) float64 {
 		}
 
 	}
+	if j == len(foil.Mach) {
+		j--
+	}
 	x1 = foil.Mach[j-1]
 	x2 = foil.Mach[j]
 	y1 = aprox(Alpha, foil.Data[j-1].Alpha, foil.Data[j-1].Cy)
@@ -191,6 +194,10 @@ func FindCx(Alpha, Mach float64, foil Foil) float64 {
 		if Mach <= foil.Mach[i] {
 			break
 		}
+
+	}
+	if j == len(foil.Mach) {
+		j--
 	}
 	x1 = foil.Mach[j-1]
 	x2 = foil.Mach[j]
